@@ -1,8 +1,8 @@
 from collections import OrderedDict
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 
 from src.feature_engineering import load_dataset, preprocess_data
-from src.perceptron_model import Perceptron
 
 
 class LRUCache:
@@ -57,7 +57,7 @@ def simulate_ml(trace, model, cache_size=256):
             row["access_type"]
         ])
 
-        ml_prediction = model.predict([features])[0]
+        prediction = model.predict([features])[0]
 
         if address in cache:
             hits += 1
@@ -68,7 +68,7 @@ def simulate_ml(trace, model, cache_size=256):
 
             if len(cache) >= cache_size:
 
-                if ml_prediction == 1:
+                if prediction == 1:
                     cache.popitem(last=False)
 
             cache[address] = True
@@ -97,7 +97,6 @@ def simulate_hybrid(trace, model, cache_size=256):
 
         ml_prediction = model.predict([features])[0]
 
-        # heuristic rule
         heuristic_prediction = 1 if row["reuse_distance"] <= 10 else 0
 
         useful = 1 if (ml_prediction or heuristic_prediction) else 0
@@ -124,11 +123,16 @@ if __name__ == "__main__":
     # Load dataset
     df = load_dataset()
 
-    # Prepare ML features
+    # Prepare features
     X, y = preprocess_data(df)
 
-    # Train ML model
-    model = Perceptron()
+    # Train Random Forest model
+    model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=10,
+        random_state=42
+    )
+
     model.fit(X, y)
 
     # Run simulations
@@ -142,7 +146,7 @@ if __name__ == "__main__":
     print("Hits:", lru_hits)
     print("Misses:", lru_misses)
 
-    print("\nML Policy")
+    print("\nML Policy (Random Forest)")
     print("Hits:", ml_hits)
     print("Misses:", ml_misses)
 
